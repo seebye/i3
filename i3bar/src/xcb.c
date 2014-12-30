@@ -123,6 +123,41 @@ uint32_t get_sep_offset(struct status_block *block) {
     return 0;
 }
 
+/* A small structure to hold colors for foreground, background and border of a block. */
+struct block_colors_t {
+    uint32_t fg_color;
+    uint32_t bg_color;
+    uint32_t border_color;
+};
+
+/**
+ * Determine the colors the given block will use. This considers whether background
+ * or border are set and whether or not the block is marked as urgent.
+ */
+struct block_colors_t calculate_block_colors(struct status_block *block) {
+    struct block_colors_t block_colors = {
+        .fg_color = (block != NULL && block->color ? get_colorpixel(block->color) : colors.bar_fg),
+        .bg_color = colors.bar_bg,
+        .border_color = colors.bar_bg
+    };
+
+    if (block == NULL)
+        return block_colors;
+
+    if (block->urgent) {
+        block_colors.fg_color = colors.urgent_ws_fg;
+        block_colors.bg_color = colors.urgent_ws_bg;
+        block_colors.border_color = colors.urgent_ws_border;
+    } else {
+        if (block->border)
+            block_colors.border_color = get_colorpixel(block->border);
+        if (block->background)
+            block_colors.bg_color = get_colorpixel(block->background);
+    }
+
+    return block_colors;
+}
+
 /*
  * Redraws the statusline to the buffer
  *
@@ -162,6 +197,10 @@ void refresh_statusline(void) {
             }
         }
 
+        if (block->style) {
+            statusline_width += logical_px(10);
+        }
+
         /* If this is not the last block, add some pixels for a separator. */
         if (TAILQ_NEXT(block, blocks) != NULL)
             statusline_width += block->sep_block_width;
@@ -185,25 +224,30 @@ void refresh_statusline(void) {
         if (i3string_get_num_bytes(block->full_text) == 0)
             continue;
 
-        uint32_t fg_color = (block->color ? get_colorpixel(block->color) : colors.bar_fg);
-        if (block->border || block->background || block->urgent) {
-            if (block->urgent)
-                fg_color = colors.urgent_ws_fg;
+        struct block_colors_t block_colors = calculate_block_colors(block);
+        uint32_t fg_color = block_colors.fg_color;
+        uint32_t border_color = block_colors.border_color;
+        uint32_t bg_color = block_colors.bg_color;
 
+        struct status_block *next_block = TAILQ_NEXT(block, blocks);
+        if (block->border || block->background || block->urgent || block->style) {
             uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
-            /* Let's determine the colors first. */
-            uint32_t border_color = colors.bar_bg;
-            uint32_t bg_color = colors.bar_bg;
-            if (block->urgent) {
-                border_color = colors.urgent_ws_border;
-                bg_color = colors.urgent_ws_bg;
-            } else {
-                if (block->border)
-                    border_color = get_colorpixel(block->border);
+            if (block->style) {
+                struct block_colors_t next_block_colors = calculate_block_colors(next_block);
 
-                if (block->background)
-                    bg_color = get_colorpixel(block->background);
+                xcb_rectangle_t bg_rect = { x + block->width + block->x_offset + block->x_append, logical_px(1),
+                     logical_px(10), bar_height - logical_px(2) };
+                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND),
+                    (uint32_t[]) { next_block_colors.bg_color, next_block_colors.bg_color });
+                xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
+
+                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
+                    (uint32_t[]) { bg_color, bg_color, XCB_JOIN_STYLE_ROUND });
+                xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
+                    (xcb_point_t[]) { { x + block->width + block->x_offset + block->x_append, logical_px(1) },
+                                      { x + block->width + block->x_offset + block->x_append + logical_px(10), bar_height / 2 },
+                                      { x + block->width + block->x_offset + block->x_append, bar_height - logical_px(1) } });
             }
 
             /* Draw the border. */
@@ -224,7 +268,7 @@ void refresh_statusline(void) {
                 logical_px(1) + is_border * block->border_top,
                 block->width + block->x_offset + block->x_append 
                     - is_border * (block->border_right + block->border_left),
-                bar_height - is_border * (block->border_bottom + block->border_top) - logical_px(2)
+                bar_height - logical_px(2) - is_border * (block->border_bottom + block->border_top)
             };
             xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
         }
@@ -234,10 +278,13 @@ void refresh_statusline(void) {
                   x + block->x_offset + logical_px(1) + block->border_left,
                   bar_height / 2 - font.height / 2,
                   block->width - logical_px(1) - block->border_left - block->border_right);
+
         x += block->width + block->sep_block_width + block->x_offset + block->x_append;
+        if (block->style)
+            x += logical_px(10);
 
         uint32_t sep_offset = get_sep_offset(block);
-        if (TAILQ_NEXT(block, blocks) != NULL && sep_offset > 0) {
+        if (next_block != NULL && sep_offset > 0) {
             /* This is not the last block, draw a separator. */
             uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_LINE_WIDTH;
             uint32_t values[] = {colors.sep_fg, colors.bar_bg, logical_px(1)};

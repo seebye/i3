@@ -32,6 +32,11 @@ typedef enum {
     ALIGN_RIGHT
 } blockalign_t;
 
+typedef enum {
+    BLOCK_STYLE_NONE,
+    BLOCK_STYLE_TRIANGLE_RIGHT
+} block_style_t;
+
 /* This data structure represents one JSON dictionary, multiple of these make
  * up one status line. */
 struct status_block {
@@ -52,6 +57,8 @@ struct status_block {
 
     /* The amount of pixels necessary to render a separater after the block. */
     uint32_t sep_block_width;
+
+    block_style_t style;
 
     /* The amount of pixels necessary to render this block. These variables are
      * only temporarily used in refresh_statusline(). */

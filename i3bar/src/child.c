@@ -164,6 +164,8 @@ static int stdin_start_map(void *context) {
     ctx->block.border_bottom = 1;
     ctx->block.border_left = 1;
 
+    ctx->block.style = BLOCK_STYLE_NONE;
+
     return 1;
 }
 
@@ -223,6 +225,11 @@ static int stdin_string(void *context, const unsigned char *val, size_t len) {
         strncpy(copy, (const char *)val, len);
         copy[len] = 0;
         ctx->block.instance = copy;
+    }
+    if (strcasecmp(ctx->last_map_key, "style") == 0) {
+        if (len == strlen("triangle_right") && !strncmp((const char*)val, "triangle_right", strlen("triangle_right"))) {
+            ctx->block.style = BLOCK_STYLE_TRIANGLE_RIGHT;
+        }
     }
     return 1;
 }
