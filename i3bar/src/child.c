@@ -66,9 +66,13 @@ int child_stdin;
  */
 static void clear_status_blocks() {
     struct status_block *first;
+    colored_string *part;
+
     while (!TAILQ_EMPTY(&statusline_head)) {
         first = TAILQ_FIRST(&statusline_head);
-        I3STRING_FREE(first->full_text);
+        TAILQ_FOREACH(part, &(first->text_head), parts) {
+            I3STRING_FREE(part->text);
+        }
         TAILQ_REMOVE(&statusline_head, first, blocks);
         free(first);
     }
@@ -89,15 +93,25 @@ __attribute__((format(printf, 1, 2))) static void set_statusline_error(const cha
     vasprintf(&message, format, args);
 
     struct status_block *err_block = scalloc(sizeof(struct status_block));
-    err_block->full_text = i3string_from_utf8("Error: ");
+
+    TAILQ_HEAD(err_text_head, colored_string) err_text_head = TAILQ_HEAD_INITIALIZER(err_block->text_head);
+    colored_string *err_text = scalloc(sizeof(colored_string));
+    err_text->text = i3string_from_utf8("Error: ");
+    err_text->color = "red";
+    TAILQ_INSERT_TAIL(&err_text_head, err_text, parts);
+
     err_block->name = "error";
-    err_block->color = "red";
     err_block->no_separator = true;
 
     struct status_block *message_block = scalloc(sizeof(struct status_block));
-    message_block->full_text = i3string_from_utf8(message);
+
+    TAILQ_HEAD(message_text_head, colored_string) message_text_head = TAILQ_HEAD_INITIALIZER(message_block->text_head);
+    colored_string *message_text = scalloc(sizeof(colored_string));
+    message_text->text = i3string_from_utf8(message);
+    message_text->color = "red";
+    TAILQ_INSERT_TAIL(&message_text_head, message_text, parts);
+
     message_block->name = "error_message";
-    message_block->color = "red";
     message_block->no_separator = true;
 
     TAILQ_INSERT_HEAD(&statusline_head, err_block, blocks);
@@ -135,9 +149,16 @@ void cleanup(void) {
  */
 static int stdin_start_array(void *context) {
     struct status_block *first;
+
     while (!TAILQ_EMPTY(&statusline_head)) {
         first = TAILQ_FIRST(&statusline_head);
-        I3STRING_FREE(first->full_text);
+
+        colored_string *part;
+        TAILQ_FOREACH(part, &(first->text_head), parts) {
+            I3STRING_FREE(part->text);
+            FREE(part->color);
+        }
+
         FREE(first->color);
         FREE(first->name);
         FREE(first->instance);
@@ -188,7 +209,12 @@ static int stdin_boolean(void *context, int val) {
 static int stdin_string(void *context, const unsigned char *val, size_t len) {
     parser_ctx *ctx = context;
     if (strcasecmp(ctx->last_map_key, "full_text") == 0) {
-        ctx->block.full_text = i3string_from_utf8_with_length((const char *)val, len);
+        TAILQ_HEAD(text_head, colored_string) text_head = TAILQ_HEAD_INITIALIZER(ctx->block.text_head);
+        colored_string *text = scalloc(sizeof(colored_string));
+        text->text = i3string_from_utf8_with_length((const char *)val, len);
+        // TODO #14
+        sasprintf(&(text->color), "%.*s", strlen("#FF0000"), "#FF0000");
+        TAILQ_INSERT_TAIL(&text_head, text, parts);
     }
     if (strcasecmp(ctx->last_map_key, "color") == 0) {
         sasprintf(&(ctx->block.color), "%.*s", len, val);
@@ -256,8 +282,9 @@ static int stdin_end_map(void *context) {
     memcpy(new_block, &(ctx->block), sizeof(struct status_block));
     /* Ensure we have a full_text set, so that when it is missing (or null),
      * i3bar doesn’t crash and the user gets an annoying message. */
-    if (!new_block->full_text)
-        new_block->full_text = i3string_from_utf8("ERROR No full_text specified!");
+    // TODO #14
+    //if (!new_block->full_text)
+    //    new_block->full_text = i3string_from_utf8("ERROR No full_text specified!");
     if (new_block->urgent)
         ctx->has_urgent = true;
     TAILQ_INSERT_TAIL(&statusline_head, new_block, blocks);
@@ -268,8 +295,9 @@ static int stdin_end_array(void *context) {
     DLOG("dumping statusline:\n");
     struct status_block *current;
     TAILQ_FOREACH (current, &statusline_head, blocks) {
-        DLOG("full_text = %s\n", i3string_as_utf8(current->full_text));
-        DLOG("color = %s\n", current->color);
+        // TODO #14
+        //DLOG("full_text = %s\n", i3string_as_utf8(current->full_text));
+        //DLOG("color = %s\n", current->color);
     }
     DLOG("end of dump\n");
     return 1;
@@ -321,14 +349,27 @@ static unsigned char *get_buffer(ev_io *watcher, int *ret_buffer_len) {
 static void read_flat_input(char *buffer, int length) {
     struct status_block *first = TAILQ_FIRST(&statusline_head);
     /* Clear the old buffer if any. */
-    I3STRING_FREE(first->full_text);
+    colored_string *part;
+    while (!TAILQ_EMPTY(&(first->text_head))) {
+        part = TAILQ_FIRST(&(first->text_head));
+        I3STRING_FREE(part->text);
+        FREE(part->color);
+        TAILQ_REMOVE(&(first->text_head), part, parts);
+        free(part);
+    }
     /* Remove the trailing newline and terminate the string at the same
      * time. */
     if (buffer[length - 1] == '\n' || buffer[length - 1] == '\r')
         buffer[length - 1] = '\0';
     else
         buffer[length] = '\0';
-    first->full_text = i3string_from_utf8(buffer);
+
+    TAILQ_HEAD(text_head, colored_string) text_head = TAILQ_HEAD_INITIALIZER(first->text_head);
+    colored_string *text = scalloc(sizeof(colored_string));
+    text->text = i3string_from_utf8(buffer);
+    // TODO #14
+    sasprintf(&(text->color), "%.*s", strlen("#FF0000"), "#FF0000");
+    TAILQ_INSERT_TAIL(&text_head, text, parts);
 }
 
 static bool read_json_input(unsigned char *input, int length) {

@@ -135,10 +135,11 @@ void refresh_statusline(void) {
 
     /* Predict the text width of all blocks (in pixels). */
     TAILQ_FOREACH (block, &statusline_head, blocks) {
-        if (i3string_get_num_bytes(block->full_text) == 0)
+        colored_string *text = TAILQ_FIRST(&(block->text_head));
+        if (i3string_get_num_bytes(text->text) == 0)
             continue;
 
-        block->width = predict_text_width(block->full_text);
+        block->width = predict_text_width(text->text);
         /* Add some padding. */
         block->width += logical_px(2) + block->border_left + block->border_right;
 
@@ -182,10 +183,11 @@ void refresh_statusline(void) {
     /* Draw the text of each block. */
     uint32_t x = 0;
     TAILQ_FOREACH (block, &statusline_head, blocks) {
-        if (i3string_get_num_bytes(block->full_text) == 0)
+        colored_string *text = TAILQ_FIRST(&(block->text_head));
+        if (i3string_get_num_bytes(text->text) == 0)
             continue;
 
-        uint32_t fg_color = (block->color ? get_colorpixel(block->color) : colors.bar_fg);
+        uint32_t fg_color = (text->color ? get_colorpixel(text->color) : colors.bar_fg);
         if (block->border || block->background || block->urgent) {
             if (block->urgent)
                 fg_color = colors.urgent_ws_fg;
@@ -230,7 +232,7 @@ void refresh_statusline(void) {
         }
 
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
-        draw_text(block->full_text, statusline_pm, statusline_ctx,
+        draw_text(text->text, statusline_pm, statusline_ctx,
                   x + block->x_offset + logical_px(1) + block->border_left,
                   bar_height / 2 - font.height / 2,
                   block->width - logical_px(1) - block->border_left - block->border_right);

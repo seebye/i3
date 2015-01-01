@@ -32,10 +32,17 @@ typedef enum {
     ALIGN_RIGHT
 } blockalign_t;
 
+typedef struct colored_string {
+    i3String *text;
+    char *color;
+
+    TAILQ_ENTRY(colored_string) parts;
+} colored_string;
+
 /* This data structure represents one JSON dictionary, multiple of these make
  * up one status line. */
 struct status_block {
-    i3String *full_text;
+    TAILQ_HEAD(text_head, colored_string) text_head;
 
     char *color;
     char *background;
