@@ -281,10 +281,10 @@ static int stdin_end_map(void *context) {
     /* Ensure we have a full_text set, so that when it is missing (or null),
      * i3bar doesn’t crash and the user gets an annoying message. */
     if (TAILQ_EMPTY(&(new_block->text_head))) {
-        TAILQ_HEAD(text_head, colored_string) ext_head = TAILQ_HEAD_INITIALIZER(new_block->text_head);
+        TAILQ_HEAD(text_head, colored_string) text_head = TAILQ_HEAD_INITIALIZER(new_block->text_head);
         colored_string *text = scalloc(sizeof(colored_string));
         text->text = i3string_from_utf8("ERROR No full_text specified!");
-        TAILQ_INSERT_TAIL(&err_text_head, err_text, parts);
+        TAILQ_INSERT_TAIL(&text_head, text, parts);
     }
 
     if (new_block->urgent)
@@ -300,7 +300,7 @@ static int stdin_end_array(void *context) {
     TAILQ_FOREACH (current, &statusline_head, blocks) {
         DLOG("full_text=");
         TAILQ_FOREACH(part, &(current->text_head), parts) {
-            DLOG("%s", part->text);
+            DLOG("%s", i3string_as_utf8(part->text));
         }
         DLOG("\ncolor = %s\n", current->color);
     }
