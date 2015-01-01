@@ -135,11 +135,19 @@ void refresh_statusline(void) {
 
     /* Predict the text width of all blocks (in pixels). */
     TAILQ_FOREACH (block, &statusline_head, blocks) {
-        colored_string *text = TAILQ_FIRST(&(block->text_head));
-        if (i3string_get_num_bytes(text->text) == 0)
+        char *tmp_text;
+        colored_string *part;
+        TAILQ_FOREACH(part, &(block->text_head), parts) {
+            sasprintf(&tmp_text, "%s%s", tmp_text, i3string_as_utf8(part->text));
+        }
+
+        i3String *full_text = i3string_from_utf8(tmp_text);
+        FREE(tmp_text);
+
+        if (i3string_get_num_bytes(full_text) == 0)
             continue;
 
-        block->width = predict_text_width(text->text);
+        block->width = predict_text_width(full_text);
         /* Add some padding. */
         block->width += logical_px(2) + block->border_left + block->border_right;
 
@@ -183,12 +191,21 @@ void refresh_statusline(void) {
     /* Draw the text of each block. */
     uint32_t x = 0;
     TAILQ_FOREACH (block, &statusline_head, blocks) {
-        colored_string *text = TAILQ_FIRST(&(block->text_head));
-        if (i3string_get_num_bytes(text->text) == 0)
+        char *tmp_text;
+        colored_string *part;
+        TAILQ_FOREACH(part, &(block->text_head), parts) {
+            sasprintf(&tmp_text, "%s%s", tmp_text, i3string_as_utf8(part->text));
+        }
+
+        i3String *full_text = i3string_from_utf8(tmp_text);
+        FREE(tmp_text);
+
+        if (i3string_get_num_bytes(full_text) == 0)
             continue;
 
-        uint32_t fg_color = (text->color ? get_colorpixel(text->color)
-            : block->color ? get_colorpixel(block->color) : colors.bar_fg);
+        //uint32_t fg_color = (text->color ? get_colorpixel(text->color)
+        //    : block->color ? get_colorpixel(block->color) : colors.bar_fg);
+        uint32_t fg_color = NULL;
         if (block->border || block->background || block->urgent) {
             if (block->urgent)
                 fg_color = colors.urgent_ws_fg;
