@@ -372,8 +372,6 @@ static void read_flat_input(char *buffer, int length) {
     TAILQ_HEAD(text_head, colored_string) text_head = TAILQ_HEAD_INITIALIZER(first->text_head);
     colored_string *text = scalloc(sizeof(colored_string));
     text->text = i3string_from_utf8(buffer);
-    // TODO #14
-    sasprintf(&(text->color), "%.*s", strlen("#FF0000"), "#FF0000");
     TAILQ_INSERT_TAIL(&text_head, text, parts);
 }
 
