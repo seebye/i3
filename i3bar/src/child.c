@@ -280,9 +280,13 @@ static int stdin_end_map(void *context) {
     memcpy(new_block, &(ctx->block), sizeof(struct status_block));
     /* Ensure we have a full_text set, so that when it is missing (or null),
      * i3bar doesn’t crash and the user gets an annoying message. */
-    // TODO #14
-    //if (!new_block->full_text)
-    //    new_block->full_text = i3string_from_utf8("ERROR No full_text specified!");
+    if (TAILQ_EMPTY(&(new_block->text_head))) {
+        TAILQ_HEAD(text_head, colored_string) ext_head = TAILQ_HEAD_INITIALIZER(new_block->text_head);
+        colored_string *text = scalloc(sizeof(colored_string));
+        text->text = i3string_from_utf8("ERROR No full_text specified!");
+        TAILQ_INSERT_TAIL(&err_text_head, err_text, parts);
+    }
+
     if (new_block->urgent)
         ctx->has_urgent = true;
     TAILQ_INSERT_TAIL(&statusline_head, new_block, blocks);
