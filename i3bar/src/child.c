@@ -296,10 +296,13 @@ static int stdin_end_map(void *context) {
 static int stdin_end_array(void *context) {
     DLOG("dumping statusline:\n");
     struct status_block *current;
+    colored_string *part;
     TAILQ_FOREACH (current, &statusline_head, blocks) {
-        // TODO #14
-        //DLOG("full_text = %s\n", i3string_as_utf8(current->full_text));
-        //DLOG("color = %s\n", current->color);
+        DLOG("full_text=");
+        TAILQ_FOREACH(part, &(current->text_head), parts) {
+            DLOG("%s", part->text);
+        }
+        DLOG("\ncolor = %s\n", current->color);
     }
     DLOG("end of dump\n");
     return 1;
