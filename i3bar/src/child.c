@@ -212,8 +212,6 @@ static int stdin_string(void *context, const unsigned char *val, size_t len) {
         TAILQ_HEAD(text_head, colored_string) text_head = TAILQ_HEAD_INITIALIZER(ctx->block.text_head);
         colored_string *text = scalloc(sizeof(colored_string));
         text->text = i3string_from_utf8_with_length((const char *)val, len);
-        // TODO #14
-        sasprintf(&(text->color), "%.*s", strlen("#FF0000"), "#FF0000");
         TAILQ_INSERT_TAIL(&text_head, text, parts);
     }
     if (strcasecmp(ctx->last_map_key, "color") == 0) {

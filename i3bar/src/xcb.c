@@ -187,7 +187,8 @@ void refresh_statusline(void) {
         if (i3string_get_num_bytes(text->text) == 0)
             continue;
 
-        uint32_t fg_color = (text->color ? get_colorpixel(text->color) : colors.bar_fg);
+        uint32_t fg_color = (text->color ? get_colorpixel(text->color)
+            : block->color ? get_colorpixel(block->color) : colors.bar_fg);
         if (block->border || block->background || block->urgent) {
             if (block->urgent)
                 fg_color = colors.urgent_ws_fg;
