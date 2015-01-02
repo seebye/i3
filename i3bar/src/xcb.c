@@ -178,6 +178,8 @@ uint32_t calculate_block_style_padding_next(struct status_block *block, struct s
     return 0;
 }
 
+// TODO #16 Wrong color for >| >>
+// TODO #16 Wrong color if there are separators
 void draw_block_triangle(uint32_t x, struct block_colors_t first, struct block_colors_t second) {
     /* Draw background of second block */
     xcb_rectangle_t bg_rect = { x, logical_px(1), logical_px(10), bar_height - logical_px(2) };
@@ -268,7 +270,7 @@ void refresh_statusline(void) {
 
         struct status_block *prev_block = TAILQ_PREV(block, statusline_head, blocks);
         struct status_block *next_block = TAILQ_NEXT(block, blocks);
-        if (block->border || block->background || block->urgent || block->style.left || block->style.right) {
+        if (block->border || block->background || block->urgent) {
             uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
             /* Draw the border. */
@@ -292,13 +294,13 @@ void refresh_statusline(void) {
                 bar_height - logical_px(2) - is_border * (block->border_bottom + block->border_top)
             };
             xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
-
-            if (calculate_block_style_padding_prev(block, prev_block) > 0)
-                draw_block_triangle(x, calculate_block_colors(prev_block), block_colors);
-            if (calculate_block_style_padding_next(block, next_block) > 0)
-                draw_block_triangle(x + block->width + block->x_offset + block->x_append
-                    - calculate_block_style_padding_next(block, next_block), block_colors, calculate_block_colors(next_block));
         }
+
+        if (calculate_block_style_padding_prev(block, prev_block) > 0)
+            draw_block_triangle(x, calculate_block_colors(prev_block), block_colors);
+        if (calculate_block_style_padding_next(block, next_block) > 0)
+            draw_block_triangle(x + block->width + block->x_offset + block->x_append
+                - calculate_block_style_padding_next(block, next_block), block_colors, calculate_block_colors(next_block));
 
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
