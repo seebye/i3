@@ -158,6 +158,26 @@ struct block_colors_t calculate_block_colors(struct status_block *block) {
     return block_colors;
 }
 
+uint32_t calculate_block_style_padding_prev(struct status_block *block, struct status_block *prev) {
+    if (block->style.left) {
+        if (prev != NULL && prev->style.right && get_sep_offset(prev) == 0)
+            return logical_px(5);
+        else
+            return logical_px(10);
+    }
+    return 0;
+}
+
+uint32_t calculate_block_style_padding_next(struct status_block *block, struct status_block *next) {
+    if (block->style.right) {
+        if (next != NULL && next->style.left && get_sep_offset(block) == 0)
+            return logical_px(5);
+        else
+            return logical_px(10);
+    }
+    return 0;
+}
+
 /*
  * Redraws the statusline to the buffer
  *
@@ -197,12 +217,13 @@ void refresh_statusline(void) {
             }
         }
 
-        if (block->style) {
-            statusline_width += logical_px(10);
-        }
+        struct status_block *next = TAILQ_NEXT(block, blocks);
+        struct status_block *prev = TAILQ_PREV(block, statusline_head, blocks);
+        block->x_offset += calculate_block_style_padding_prev(block, prev);
+        block->x_append += calculate_block_style_padding_next(block, next);
 
         /* If this is not the last block, add some pixels for a separator. */
-        if (TAILQ_NEXT(block, blocks) != NULL)
+        if (next != NULL)
             statusline_width += block->sep_block_width;
 
         statusline_width += block->width + block->x_offset + block->x_append;
@@ -230,25 +251,8 @@ void refresh_statusline(void) {
         uint32_t bg_color = block_colors.bg_color;
 
         struct status_block *next_block = TAILQ_NEXT(block, blocks);
-        if (block->border || block->background || block->urgent || block->style) {
+        if (block->border || block->background || block->urgent || block->style.left || block->style.right) {
             uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-
-            if (block->style) {
-                struct block_colors_t next_block_colors = calculate_block_colors(next_block);
-
-                xcb_rectangle_t bg_rect = { x + block->width + block->x_offset + block->x_append, logical_px(1),
-                     logical_px(10), bar_height - logical_px(2) };
-                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND),
-                    (uint32_t[]) { next_block_colors.bg_color, next_block_colors.bg_color });
-                xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
-
-                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
-                    (uint32_t[]) { bg_color, bg_color, XCB_JOIN_STYLE_ROUND });
-                xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
-                    (xcb_point_t[]) { { x + block->width + block->x_offset + block->x_append, logical_px(1) },
-                                      { x + block->width + block->x_offset + block->x_append + logical_px(10), bar_height / 2 },
-                                      { x + block->width + block->x_offset + block->x_append, bar_height - logical_px(1) } });
-            }
 
             /* Draw the border. */
             uint32_t border_values[] = { border_color, border_color };
@@ -271,6 +275,24 @@ void refresh_statusline(void) {
                 bar_height - logical_px(2) - is_border * (block->border_bottom + block->border_top)
             };
             xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
+
+            if (calculate_block_style_padding_next(block, next_block) > 0) {
+                uint32_t x_triangle = x + block->width + block->x_offset + block->x_append
+                    - calculate_block_style_padding_next(block, next_block);
+                struct block_colors_t next_block_colors = calculate_block_colors(next_block);
+
+                xcb_rectangle_t bg_rect = { x_triangle, logical_px(1), logical_px(10), bar_height - logical_px(2) };
+                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND),
+                    (uint32_t[]) { next_block_colors.bg_color, next_block_colors.bg_color });
+                xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
+
+                xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
+                    (uint32_t[]) { bg_color, bg_color, XCB_JOIN_STYLE_ROUND });
+                xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
+                    (xcb_point_t[]) { { x_triangle,                  logical_px(1) },
+                                      { x_triangle + logical_px(10), bar_height / 2 },
+                                      { x_triangle,                  bar_height - logical_px(1) } });
+            }
         }
 
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
@@ -280,8 +302,6 @@ void refresh_statusline(void) {
                   block->width - logical_px(1) - block->border_left - block->border_right);
 
         x += block->width + block->sep_block_width + block->x_offset + block->x_append;
-        if (block->style)
-            x += logical_px(10);
 
         uint32_t sep_offset = get_sep_offset(block);
         if (next_block != NULL && sep_offset > 0) {

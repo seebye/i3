@@ -164,7 +164,8 @@ static int stdin_start_map(void *context) {
     ctx->block.border_bottom = 1;
     ctx->block.border_left = 1;
 
-    ctx->block.style = BLOCK_STYLE_NONE;
+    ctx->block.style.left = BLOCK_STYLE_NONE;
+    ctx->block.style.right = BLOCK_STYLE_NONE;
 
     return 1;
 }
@@ -185,6 +186,12 @@ static int stdin_boolean(void *context, int val) {
         ctx->block.no_separator = !val;
     }
     return 1;
+}
+
+block_style_t convert_block_style(char val) {
+    if (val == '>')
+        return BLOCK_STYLE_TRIANGLE_RIGHT;
+    return BLOCK_STYLE_NONE;
 }
 
 static int stdin_string(void *context, const unsigned char *val, size_t len) {
@@ -227,9 +234,8 @@ static int stdin_string(void *context, const unsigned char *val, size_t len) {
         ctx->block.instance = copy;
     }
     if (strcasecmp(ctx->last_map_key, "style") == 0) {
-        if (len == strlen("triangle_right") && !strncmp((const char*)val, "triangle_right", strlen("triangle_right"))) {
-            ctx->block.style = BLOCK_STYLE_TRIANGLE_RIGHT;
-        }
+        ctx->block.style.left = convert_block_style(val[0]);
+        ctx->block.style.right = convert_block_style(len >= 2 ? val[1] : val[0]);
     }
     return 1;
 }
