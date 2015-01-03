@@ -158,7 +158,7 @@ struct block_colors_t calculate_block_colors(struct status_block *block) {
     return block_colors;
 }
 
-// TODO #16 unify methods
+/* Determine the padding that needs to be added to block->x_offset if a block style is used. */
 uint32_t calculate_block_style_padding_prev(struct status_block *block, struct status_block *prev) {
     if (block->style.left) {
         if (prev == NULL)
@@ -171,6 +171,7 @@ uint32_t calculate_block_style_padding_prev(struct status_block *block, struct s
     return 0;
 }
 
+/* Determine the padding that needs to be added to block->x_append if a block style is used. */
 uint32_t calculate_block_style_padding_next(struct status_block *block, struct status_block *next) {
     if (block->style.right) {
         return logical_px(10);
@@ -178,7 +179,13 @@ uint32_t calculate_block_style_padding_next(struct status_block *block, struct s
     return 0;
 }
 
-// TODO #16 document
+/**
+ * Draws a triangle that is used if the block style is BLOCK_STYLE_TRIANGLE_RIGHT.
+ * @param x: Coordinate where to start drawing from.
+ * @param first | second: The blocks, in order of appearance, connected by this triangle.
+ *                        Either one may be NULL in case of the first / last block.
+ * @param affected_block: The block to which the triangle belongs. Must be either first or second.
+ */
 void draw_block_triangle(uint32_t x, struct status_block *first, struct status_block *second,
         struct status_block *affected_block) {
     struct block_colors_t first_colors = calculate_block_colors(first);
