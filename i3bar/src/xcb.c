@@ -187,8 +187,11 @@ void draw_block_triangle(uint32_t x, struct status_block *first, struct status_b
     if (affected_block == second && first != NULL && first->sep_block_width > 0)
         first_colors.bg_color = colors.bar_bg;
     // for '>>' '|>'
-    if (affected_block == first && second != NULL && !second->style.right)
+    if (affected_block == first && second != NULL && !second->style.left)
         second_colors.bg_color = colors.bar_bg;
+    // for '>|' '>>'
+    if (affected_block == second && first != NULL && !first->style.right)
+        first_colors.bg_color = colors.bar_bg;
 
     /* Draw background of second block */
     xcb_rectangle_t bg_rect = { x, logical_px(1), logical_px(10), bar_height - logical_px(2) };
