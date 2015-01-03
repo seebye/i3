@@ -160,7 +160,7 @@ struct block_colors_t calculate_block_colors(struct status_block *block) {
 
 uint32_t calculate_block_style_padding_prev(struct status_block *block, struct status_block *prev) {
     if (block->style.left) {
-        if (prev != NULL && prev->style.right && get_sep_offset(prev) == 0)
+        if (prev != NULL && prev->style.right && prev->sep_block_width == 0)
             return logical_px(5);
         else
             return logical_px(10);
@@ -170,7 +170,7 @@ uint32_t calculate_block_style_padding_prev(struct status_block *block, struct s
 
 uint32_t calculate_block_style_padding_next(struct status_block *block, struct status_block *next) {
     if (block->style.right) {
-        if (next != NULL && next->style.left && get_sep_offset(block) == 0)
+        if (next != NULL && next->style.left && block->sep_block_width == 0)
             return logical_px(5);
         else
             return logical_px(10);
@@ -179,17 +179,21 @@ uint32_t calculate_block_style_padding_next(struct status_block *block, struct s
 }
 
 // TODO #16 Wrong color for >| >>
-// TODO #16 Wrong color if there are separators
-void draw_block_triangle(uint32_t x, struct block_colors_t first, struct block_colors_t second) {
+void draw_block_triangle(uint32_t x, struct status_block *first, struct status_block *second, bool is_left) {
+    struct block_colors_t first_colors = calculate_block_colors(first);
+    struct block_colors_t second_colors = calculate_block_colors(second);
+    if (is_left && first != NULL && first->sep_block_width > 0)
+        first_colors.bg_color = colors.bar_bg;
+
     /* Draw background of second block */
     xcb_rectangle_t bg_rect = { x, logical_px(1), logical_px(10), bar_height - logical_px(2) };
     xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND),
-        (uint32_t[]) { second.bg_color, second.bg_color });
+        (uint32_t[]) { second_colors.bg_color, second_colors.bg_color });
     xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
 
     /* Draw triangle */
     xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
-        (uint32_t[]) { first.bg_color, first.bg_color, XCB_JOIN_STYLE_ROUND });
+        (uint32_t[]) { first_colors.bg_color, first_colors.bg_color, XCB_JOIN_STYLE_ROUND });
     xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
         (xcb_point_t[]) { { x,                  logical_px(1) },
                           { x + logical_px(10), bar_height / 2 },
@@ -296,11 +300,12 @@ void refresh_statusline(void) {
             xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
         }
 
+        // TODO #16 Check x values
         if (calculate_block_style_padding_prev(block, prev_block) > 0)
-            draw_block_triangle(x, calculate_block_colors(prev_block), block_colors);
+            draw_block_triangle(x, prev_block, block, true);
         if (calculate_block_style_padding_next(block, next_block) > 0)
             draw_block_triangle(x + block->width + block->x_offset + block->x_append
-                - calculate_block_style_padding_next(block, next_block), block_colors, calculate_block_colors(next_block));
+                - calculate_block_style_padding_next(block, next_block), block, next_block, false);
 
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
