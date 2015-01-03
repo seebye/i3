@@ -285,6 +285,8 @@ void refresh_statusline(void) {
     xcb_rectangle_t rect = {0, 0, root_screen->width_in_pixels, bar_height};
     xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_clear, 1, &rect);
 
+    /* Keep track of the last block to eliminate a constant lookup */
+    struct status_block *prev_block = NULL;
     /* Draw the text of each block. */
     uint32_t x = 0;
     TAILQ_FOREACH (block, &statusline_head, blocks) {
@@ -319,7 +321,6 @@ void refresh_statusline(void) {
         }
 
         /* Draw the block style. */
-        struct status_block *prev_block = TAILQ_PREV(block, statusline_head, blocks);
         struct status_block *next_block = TAILQ_NEXT(block, blocks);
         uint32_t prev_padding = calculate_block_style_padding_prev(block, prev_block);
         uint32_t next_padding = calculate_block_style_padding_next(block, next_block);
@@ -347,6 +348,8 @@ void refresh_statusline(void) {
                           (xcb_point_t[]) { { x - sep_offset, logical_px(4) },
                                             { x - sep_offset, bar_height - logical_px(4) } });
         }
+
+        prev_block = block;
     }
 }
 
