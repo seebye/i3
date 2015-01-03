@@ -181,17 +181,23 @@ void draw_block_triangle(uint32_t x, struct status_block *first, struct status_b
         struct status_block *affected_block) {
     struct block_colors_t first_colors = calculate_block_colors(first);
     struct block_colors_t second_colors = calculate_block_colors(second);
-    // TODO #16 cleanup
-    if (affected_block == first && first != NULL && first->sep_block_width > 0)
-        second_colors.bg_color = colors.bar_bg;
-    if (affected_block == second && first != NULL && first->sep_block_width > 0)
-        first_colors.bg_color = colors.bar_bg;
-    // for '>>' '|>'
-    if (affected_block == first && second != NULL && !second->style.left)
-        second_colors.bg_color = colors.bar_bg;
-    // for '>|' '>>'
-    if (affected_block == second && first != NULL && !first->style.right)
-        first_colors.bg_color = colors.bar_bg;
+
+    /* For some corner cases, we need to fix the colors we will use. */
+    if (affected_block == first) {
+        /* If there is space in between, don't take the background from the other block. */
+        if (first != NULL && first->sep_block_width > 0)
+            second_colors.bg_color = colors.bar_bg;
+        /* Fixes the case of a sequence of '>>' and '|>'. */
+        if (second != NULL && !second->style.left)
+            second_colors.bg_color = colors.bar_bg;
+    } else if (affected_block == second) {
+        /* If there is space in between, don't take the background from the other block. */
+        if (first != NULL && first->sep_block_width > 0)
+            first_colors.bg_color = colors.bar_bg;
+        /* Fixes the case of a sequence of '>|' and '>>'. */
+        if (first != NULL && !first->style.right)
+            first_colors.bg_color = colors.bar_bg;
+    }
 
     /* Draw background of second block */
     xcb_rectangle_t bg_rect = { x, logical_px(1), logical_px(10), bar_height - logical_px(2) };
