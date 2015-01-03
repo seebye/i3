@@ -292,15 +292,11 @@ void refresh_statusline(void) {
             continue;
 
         struct block_colors_t block_colors = calculate_block_colors(block);
-        // TODO #16 get rid of these variables
-        uint32_t fg_color = block_colors.fg_color;
-        uint32_t border_color = block_colors.border_color;
-        uint32_t bg_color = block_colors.bg_color;
         if (block->border || block->background || block->urgent) {
             uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
             /* Draw the border. */
-            uint32_t border_values[] = { border_color, border_color };
+            uint32_t border_values[] = { block_colors.border_color, block_colors.border_color };
             xcb_change_gc(xcb_connection, statusline_ctx, mask, border_values);
 
             xcb_rectangle_t border_rect = { x, logical_px(1),
@@ -309,7 +305,7 @@ void refresh_statusline(void) {
 
             /* Draw the background. */
             bool is_border = !!block->border;
-            uint32_t bg_values[] = { bg_color, bg_color };
+            uint32_t bg_values[] = { block_colors.bg_color, block_colors.bg_color };
             xcb_change_gc(xcb_connection, statusline_ctx, mask, bg_values);
 
             xcb_rectangle_t bg_rect = {
@@ -332,7 +328,7 @@ void refresh_statusline(void) {
         if (next_padding > 0)
             draw_block_triangle(x + block->width + block->x_offset + block->x_append - next_padding, block, next_block, block);
 
-        set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
+        set_font_colors(statusline_ctx, block_colors.fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
                   x + block->x_offset + logical_px(1) + block->border_left,
                   bar_height / 2 - font.height / 2,
