@@ -188,6 +188,15 @@ uint32_t calculate_block_style_padding_next(struct status_block *block, struct s
  */
 void draw_block_triangle(uint32_t x, struct status_block *first, struct status_block *second,
         struct status_block *affected_block) {
+    bool draw_main_triangle = true;
+    if (affected_block == second) {
+        uint32_t offset = calculate_block_style_padding_prev(second, first);
+        if (offset > 0 && offset < logical_px(10)) {
+            x -= logical_px(10) - offset;
+            draw_main_triangle = false;
+        }
+    }
+
     struct block_colors_t first_colors = calculate_block_colors(first);
     struct block_colors_t second_colors = calculate_block_colors(second);
 
@@ -208,19 +217,27 @@ void draw_block_triangle(uint32_t x, struct status_block *first, struct status_b
             first_colors.bg_color = colors.bar_bg;
     }
 
-    /* Draw background of second block */
-    xcb_rectangle_t bg_rect = { x, logical_px(1), logical_px(10), bar_height - logical_px(2) };
-    xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND),
-        (uint32_t[]) { second_colors.bg_color, second_colors.bg_color });
-    xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
+    /* Draw "main" triangle with the color of the first block. */
+    if (draw_main_triangle) {
+        xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
+            (uint32_t[]) { first_colors.bg_color, first_colors.bg_color, XCB_JOIN_STYLE_ROUND });
+        xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
+            (xcb_point_t[]) { { x,                  logical_px(1) },
+                              { x + logical_px(10), bar_height / 2 },
+                              { x,                  bar_height - logical_px(1) } });
+    }
 
-    /* Draw triangle */
+    /* Draw the small triangles with the color of the second block. */
     xcb_change_gc(xcb_connection, statusline_ctx, (uint32_t) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_JOIN_STYLE),
-        (uint32_t[]) { first_colors.bg_color, first_colors.bg_color, XCB_JOIN_STYLE_ROUND });
+        (uint32_t[]) { second_colors.bg_color, second_colors.bg_color, XCB_JOIN_STYLE_ROUND });
     xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
         (xcb_point_t[]) { { x,                  logical_px(1) },
-                          { x + logical_px(10), bar_height / 2 },
-                          { x,                  bar_height - logical_px(1) } });
+                          { x + logical_px(10), logical_px(1) },
+                          { x + logical_px(10), bar_height / 2 } });
+    xcb_fill_poly(xcb_connection, statusline_pm, statusline_ctx, XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN, 3,
+        (xcb_point_t[]) { { x,                  bar_height - logical_px(1) },
+                          { x + logical_px(10), bar_height - logical_px(1) },
+                          { x + logical_px(10), bar_height / 2 } });
 }
 
 /*
