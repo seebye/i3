@@ -172,7 +172,7 @@ uint32_t calculate_block_style_padding_prev(struct status_block *block, struct s
 }
 
 /* Determine the padding that needs to be added to block->x_append if a block style is used. */
-uint32_t calculate_block_style_padding_next(struct status_block *block, struct status_block *next) {
+uint32_t calculate_block_style_padding_next(struct status_block *block) {
     if (block->style.right) {
         return logical_px(10);
     }
@@ -185,18 +185,10 @@ uint32_t calculate_block_style_padding_next(struct status_block *block, struct s
  * @param first | second: The blocks, in order of appearance, connected by this triangle.
  *                        Either one may be NULL in case of the first / last block.
  * @param affected_block: The block to which the triangle belongs. Must be either first or second.
+ * @param draw_main_triangle: Whether to draw the big triangle
  */
 void draw_block_triangle(uint32_t x, struct status_block *first, struct status_block *second,
-        struct status_block *affected_block) {
-    bool draw_main_triangle = true;
-    if (affected_block == second) {
-        uint32_t offset = calculate_block_style_padding_prev(second, first);
-        if (offset > 0 && offset < logical_px(10)) {
-            x -= logical_px(10) - offset;
-            draw_main_triangle = false;
-        }
-    }
-
+        struct status_block *affected_block, bool draw_main_triangle) {
     struct block_colors_t first_colors = calculate_block_colors(first);
     struct block_colors_t second_colors = calculate_block_colors(second);
 
@@ -282,8 +274,12 @@ void refresh_statusline(void) {
         /* Add some offset / append to reserve space for a different block style if necessary. */
         struct status_block *next = TAILQ_NEXT(block, blocks);
         struct status_block *prev = TAILQ_PREV(block, statusline_head, blocks);
-        block->x_offset += calculate_block_style_padding_prev(block, prev);
-        block->x_append += calculate_block_style_padding_next(block, next);
+        uint32_t prev_padding = calculate_block_style_padding_prev(block, prev);
+        block->x_offset += prev_padding;
+        block->x_append += calculate_block_style_padding_next(block);
+        // TODO #16 document
+        if (block->style.left && prev_padding > 0 && prev != NULL && calculate_block_style_padding_next(prev) > 0)
+            statusline_width -= logical_px(10);
 
         /* If this is not the last block, add some pixels for a separator. */
         if (next != NULL)
@@ -340,11 +336,18 @@ void refresh_statusline(void) {
         /* Draw the block style. */
         struct status_block *next_block = TAILQ_NEXT(block, blocks);
         uint32_t prev_padding = calculate_block_style_padding_prev(block, prev_block);
-        uint32_t next_padding = calculate_block_style_padding_next(block, next_block);
+        uint32_t next_padding = calculate_block_style_padding_next(block);
+
+        // TODO #16 refactor, document
+        bool adjust_x = block->style.left && prev_padding > 0
+            && prev_block != NULL && calculate_block_style_padding_next(prev_block) > 0;
+        if (adjust_x)
+            x -= logical_px(10);
         if (prev_padding > 0)
-            draw_block_triangle(x, prev_block, block, block);
+            draw_block_triangle(x, prev_block, block, block, !adjust_x);
         if (next_padding > 0)
-            draw_block_triangle(x + block->width + block->x_offset + block->x_append - next_padding, block, next_block, block);
+            draw_block_triangle(x + block->width + block->x_offset + block->x_append - next_padding,
+                block, next_block, block, true);
 
         set_font_colors(statusline_ctx, block_colors.fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
