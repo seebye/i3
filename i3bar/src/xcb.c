@@ -252,10 +252,9 @@ void refresh_statusline(void) {
         block->width += logical_px(2) + block->border_left + block->border_right;
 
         /* Compute offset and append for text aligment in min_width. */
-        if (block->min_width <= block->width) {
-            block->x_offset = 0;
-            block->x_append = 0;
-        } else {
+        block->x_offset = 0;
+        block->x_append = 0;
+        if (block->min_width > block->width) {
             uint32_t padding_width = block->min_width - block->width;
             switch (block->align) {
                 case ALIGN_LEFT:
