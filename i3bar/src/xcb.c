@@ -277,7 +277,8 @@ void refresh_statusline(void) {
         uint32_t prev_padding = calculate_block_style_padding_prev(block, prev);
         block->x_offset += prev_padding;
         block->x_append += calculate_block_style_padding_next(block);
-        // TODO #16 document
+        /* For blocks where a triangle meets a triangle, the sep_block_width will be between the tips of the arrow.
+           Therefore, we take away some space to account for this. */
         if (block->style.left && prev_padding > 0 && prev != NULL && calculate_block_style_padding_next(prev) > 0)
             statusline_width -= logical_px(10);
 
