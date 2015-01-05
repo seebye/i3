@@ -333,12 +333,11 @@ void refresh_statusline(void) {
             xcb_poly_fill_rectangle(xcb_connection, statusline_pm, statusline_ctx, 1, &bg_rect);
         }
 
-        /* Draw the block style. */
         struct status_block *next_block = TAILQ_NEXT(block, blocks);
         uint32_t prev_padding = calculate_block_style_padding_prev(block, prev_block);
         uint32_t next_padding = calculate_block_style_padding_next(block);
 
-        // TODO #16 refactor, document
+        /* Check whether we have to adjust the value of x to overlay the two blocks. */
         bool adjust_x = block->style.left && prev_padding > 0
             && prev_block != NULL && calculate_block_style_padding_next(prev_block) > 0;
         if (adjust_x)
