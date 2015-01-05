@@ -521,22 +521,31 @@ void handle_button(xcb_button_press_event_t *event) {
                 continue;
             tray_width += (font.height + logical_px(2));
         }
+        if (tray_width > 0)
+            tray_width += logical_px(2);
 
         int block_x = 0, last_block_x;
-        int offset = (walk->rect.w - (statusline_width + tray_width)) - logical_px(10);
+        int offset = (walk->rect.w - (statusline_width + tray_width)) - logical_px(4);
 
         x = original_x - offset;
         if (x >= 0) {
             struct status_block *block;
+            struct status_block *prev;
 
             TAILQ_FOREACH (block, &statusline_head, blocks) {
                 last_block_x = block_x;
-                block_x += block->width + block->x_offset + block->x_append;
+                block_x += block->width + block->x_offset + block->x_append + block->sep_block_width;
+
+                uint32_t padding = calculate_block_style_padding_prev(block, prev);
+                if (block->style.left && padding > 0 && prev != NULL && calculate_block_style_padding_next(prev) > 0)
+                    block_x -= logical_px(10);
 
                 if (x <= block_x && x >= last_block_x) {
                     send_block_clicked(event->detail, block->name, block->instance, event->root_x, event->root_y);
                     return;
                 }
+
+                prev = block;
             }
         }
         x = original_x;
