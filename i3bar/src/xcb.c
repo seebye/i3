@@ -232,7 +232,8 @@ void refresh_statusline(void) {
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
                   x + block->x_offset + logical_px(1) + block->border_left,
-                  bar_height / 2 - font.height / 2,
+                  logical_px(3),
+//                  bar_height / 2 - font.height / 2,
                   block->width - logical_px(1) - block->border_left - block->border_right);
         x += block->width + block->sep_block_width + block->x_offset + block->x_append;
 
