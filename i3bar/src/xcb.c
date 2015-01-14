@@ -181,6 +181,7 @@ void refresh_statusline(void) {
 
     /* Draw the text of each block. */
     uint32_t x = 0;
+    int i = 0;
     TAILQ_FOREACH (block, &statusline_head, blocks) {
         if (i3string_get_num_bytes(block->full_text) == 0)
             continue;
@@ -232,7 +233,7 @@ void refresh_statusline(void) {
         set_font_colors(statusline_ctx, fg_color, colors.bar_bg);
         draw_text(block->full_text, statusline_pm, statusline_ctx,
                   x + block->x_offset + logical_px(1) + block->border_left,
-                  logical_px(3),
+                  logical_px(i++),
 //                  bar_height / 2 - font.height / 2,
                   block->width - logical_px(1) - block->border_left - block->border_right);
         x += block->width + block->sep_block_width + block->x_offset + block->x_append;
