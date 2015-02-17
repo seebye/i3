@@ -128,6 +128,10 @@ uint32_t get_sep_offset(struct status_block *block) {
  *
  */
 void refresh_statusline(void) {
+    if (is_parsing) {
+        return;
+    }
+
     struct status_block *block;
 
     uint32_t old_statusline_width = statusline_width;

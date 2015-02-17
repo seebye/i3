@@ -146,6 +146,7 @@ static int stdin_start_array(void *context) {
         TAILQ_REMOVE(&statusline_head, first, blocks);
         free(first);
     }
+    is_parsing = 1;
     return 1;
 }
 
@@ -274,6 +275,7 @@ static int stdin_end_array(void *context) {
         DLOG("color = %s\n", current->color);
     }
     DLOG("end of dump\n");
+    is_parsing = 0;
     return 1;
 }
 

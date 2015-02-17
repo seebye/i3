@@ -67,6 +67,7 @@ struct status_block {
 };
 
 TAILQ_HEAD(statusline_head, status_block) statusline_head;
+int is_parsing;
 
 #include "child.h"
 #include "ipc.h"
