@@ -137,7 +137,7 @@ void start_application(const char *command, bool no_startup_id) {
         /* Create a startup notification context to monitor the progress of this
          * startup. */
         context = sn_launcher_context_new(sndisplay, conn_screen);
-        sn_launcher_context_set_name(context, "i3");
+        sn_launcher_context_set_name(context, "i3-gaps");
         sn_launcher_context_set_description(context, "exec command in i3");
         /* Chop off everything starting from the first space (if there are any
          * spaces in the command), since we don’t want the parameters. */
@@ -145,7 +145,7 @@ void start_application(const char *command, bool no_startup_id) {
         char *space = strchr(first_word, ' ');
         if (space)
             *space = '\0';
-        sn_launcher_context_initiate(context, "i3", first_word, last_timestamp);
+        sn_launcher_context_initiate(context, "i3-gaps", first_word, last_timestamp);
         free(first_word);
 
         /* Trigger a timeout after 60 seconds */
