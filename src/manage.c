@@ -256,20 +256,38 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
         /* If not, check if it is assigned to a specific workspace / output */
         if ((assignment = assignment_for(cwindow, A_TO_WORKSPACE | A_TO_OUTPUT))) {
             DLOG("Assignment matches (%p)\n", match);
-            if (assignment->type == A_TO_WORKSPACE) {
-                Con *assigned_ws = workspace_get(assignment->dest.workspace, NULL);
-                nc = con_descend_tiling_focused(assigned_ws);
-                DLOG("focused on ws %s: %p / %s\n", assigned_ws->name, nc, nc->name);
-                if (nc->type == CT_WORKSPACE)
-                    nc = tree_open_con(nc, cwindow);
-                else
-                    nc = tree_open_con(nc->parent, cwindow);
+            Con *assigned_ws = NULL;
 
-                /* set the urgency hint on the window if the workspace is not visible */
-                if (!workspace_is_visible(assigned_ws))
-                    urgency_hint = true;
+            if (assignment->type == A_TO_OUTPUT) {
+                Output *assigned_output = get_output_by_name(assignment->dest.output);
+                if (assigned_output == NULL) {
+                    ELOG("The assigned output does not exist. Falling back to current output.\n");
+                    // TODO assigned_output = …
+                }
+
+                GREP_FIRST(assigned_ws, output_get_content(assigned_output->con), workspace_is_visible(child));
+            } else if (assignment->type == A_TO_WORKSPACE) {
+                assigned_ws = workspace_get(assignment->dest.workspace, NULL);
+            } else {
+                ELOG("Unhandled assignment type. This is a bug in i3.\n");
+                goto out;
             }
-            /* TODO: handle assignments with type == A_TO_OUTPUT */
+
+            if (assigned_ws == NULL) {
+                ELOG("Unable to get the workspace for the assignment.\n");
+                goto out;
+            }
+
+            nc = con_descend_tiling_focused(assigned_ws);
+            DLOG("focused on ws %s: %p / %s\n", assigned_ws->name, nc, nc->name);
+            if (nc->type == CT_WORKSPACE)
+                nc = tree_open_con(nc, cwindow);
+            else
+                nc = tree_open_con(nc->parent, cwindow);
+
+            /* set the urgency hint on the window if the workspace is not visible */
+            if (!workspace_is_visible(assigned_ws))
+                urgency_hint = true;
         } else if (startup_ws) {
             /* If it’s not assigned, but was started on a specific workspace,
              * we want to open it there */

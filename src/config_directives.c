@@ -447,16 +447,28 @@ CFGFUN(color, const char *colorclass, const char *border, const char *background
 #undef APPLY_COLORS
 }
 
-CFGFUN(assign, const char *workspace) {
+CFGFUN(assign, const char *mode, const char *destination) {
     if (match_is_empty(current_match)) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
-    DLOG("new assignment, using above criteria, to workspace %s\n", workspace);
+
     Assignment *assignment = scalloc(sizeof(Assignment));
     match_copy(&(assignment->match), current_match);
-    assignment->type = A_TO_WORKSPACE;
-    assignment->dest.workspace = sstrdup(workspace);
+
+    if (mode == NULL || strcmp(mode, "workspace") == 0) {
+        DLOG("new assignment, using above criteria, to workspace %s\n", destination);
+        assignment->type = A_TO_WORKSPACE;
+        assignment->dest.workspace = sstrdup(destination);
+    } else if (strcmp(mode, "output") == 0) {
+        DLOG("new assignment, using above criteria, to output %s\n", destination);
+        assignment->type = A_TO_OUTPUT;
+        assignment->dest.output = sstrdup(destination);
+    } else {
+        ELOG("Cannot parse the assignment. This is a bug in i3.\n");
+        return;
+    }
+
     TAILQ_INSERT_TAIL(&assignments, assignment, assignments);
 }
 

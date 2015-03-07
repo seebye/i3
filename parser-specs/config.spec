@@ -156,16 +156,20 @@ state FOR_WINDOW_COMMAND:
   command = string
       -> call cfg_for_window($command)
 
-# assign <criteria> [→] workspace
+# assign <criteria> [→] <workspace>
+# assign <criteria> [→] workspace <workspace>
+# assign <criteria> [→] output <output>
 state ASSIGN:
   '['
-      -> call cfg_criteria_init(ASSIGN_WORKSPACE); CRITERIA
+      -> call cfg_criteria_init(ASSIGN_WORKSPACE_OR_OUTPUT); CRITERIA
 
-state ASSIGN_WORKSPACE:
+state ASSIGN_WORKSPACE_OR_OUTPUT:
   '→'
       ->
-  workspace = string
-      -> call cfg_assign($workspace)
+  mode = 'output', 'workspace'
+      -> ASSIGN_WORKSPACE_OR_OUTPUT
+  destination = string
+      -> call cfg_assign($mode, $destination)
 
 # Criteria: Used by for_window and assign.
 state CRITERIA:

@@ -49,11 +49,13 @@ static Output *get_output_by_id(xcb_randr_output_t id) {
  *
  */
 Output *get_output_by_name(const char *name) {
+    ELOG("FOOO INITIAL\n");
     Output *output;
-    TAILQ_FOREACH(output, &outputs, outputs)
-    if (output->active &&
-        strcasecmp(output->name, name) == 0)
-        return output;
+    TAILQ_FOREACH(output, &outputs, outputs) {
+        ELOG("FOOO: %s\n",output->name);
+        if (output->active && strcasecmp(output->name, name) == 0)
+            return output;
+    }
 
     return NULL;
 }
