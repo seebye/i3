@@ -203,7 +203,7 @@ void render_con(Con *con, bool render_fullscreen, bool already_inset) {
                 con->window_rect = rect_add(con->window_rect, inset);
             }
         }
-        inset.height = -inset.y;
+        inset.height = 0;
         con->deco_rect = rect_add(con->deco_rect, inset);
     }
 
