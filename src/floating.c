@@ -221,7 +221,7 @@ void floating_enable(Con *con, bool automatic) {
     con->floating = FLOATING_USER_ON;
 
     /* 4: set the border style as specified with new_float */
-    if (automatic)
+    //if (automatic)
         con->border_style = config.default_floating_border;
 
     /* Add pixels for the decoration. */
@@ -345,6 +345,8 @@ void floating_disable(Con *con, bool automatic) {
         con->parent = focused;
     else
         con->parent = focused->parent;
+
+    con->border_style = config.default_border;
 
     /* con_fix_percent will adjust the percent value */
     con->percent = 0.0;
