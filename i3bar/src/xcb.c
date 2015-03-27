@@ -447,7 +447,7 @@ void handle_button(xcb_button_press_event_t *event) {
          * check if a status block has been clicked. */
         int tray_width = get_tray_width(walk->trayclients);
         int block_x = 0, last_block_x;
-        int offset = walk->rect.w - statusline_width - tray_width - logical_px(sb_hoff_px);
+        int offset = walk->rect.w / 2 - statusline_width / 2 - tray_width - logical_px(sb_hoff_px);
 
         x = original_x - offset;
         if (x >= 0) {
@@ -1973,14 +1973,15 @@ void draw_bars(bool unhide) {
             /* Luckily we already prepared a seperate pixmap containing the rendered
              * statusline, we just have to copy the relevant parts to the relevant
              * position */
-            int visible_statusline_width = MIN(statusline_width, max_statusline_width);
+            int logical_x = (outputs_walk->rect.w - statusline_width) / 2;
+            int visible_x = MAX(logical_x, workspace_width + logical_px(sb_hoff_px));
             xcb_copy_area(xcb_connection,
                           statusline_pm,
                           outputs_walk->buffer,
                           outputs_walk->bargc,
-                          (int16_t)(statusline_width - visible_statusline_width), 0,
-                          (int16_t)(outputs_walk->rect.w - tray_width - logical_px(sb_hoff_px) - visible_statusline_width), 0,
-                          (int16_t)visible_statusline_width, (int16_t)bar_height);
+                          (int16_t)(visible_x - logical_x), 0,
+                          (int16_t)(visible_x), 0,
+                          (int16_t)(outputs_walk->rect.w - visible_x - tray_width - logical_px(sb_hoff_px)), (int16_t)bar_height);
         }
 
         workspace_width = 0;
