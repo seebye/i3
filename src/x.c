@@ -460,6 +460,20 @@ void x_draw_decoration(Con *con) {
                 xcb_poly_fill_rectangle(conn, con->pixmap, con->pm_gc, 1, (xcb_rectangle_t[]){
                                                                               {br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y)}});
         }
+
+        if (con_num_children(con->parent) == 1 && con->parent->type != CT_FLOATING_CON) {
+            if (p->parent_layout == L_TABBED) {
+                xcb_poly_fill_rectangle(conn, con->pixmap, con->pm_gc, 1,
+                                        (xcb_rectangle_t[]){{  } });
+                xcb_poly_fill_rectangle(conn, con->pixmap, con->pm_gc, 1,
+                                        (xcb_rectangle_t[]){{  } });
+            } else if (p->parent_layout == L_STACKED) {
+                xcb_poly_fill_rectangle(conn, con->pixmap, con->pm_gc, 1,
+                                        (xcb_rectangle_t[]){{ 0, br.y, br.x, (r->height + br.height) / 2 } });
+                xcb_poly_fill_rectangle(conn, con->pixmap, con->pm_gc, 1,
+                                        (xcb_rectangle_t[]){{ r->width + (br.width + br.x), br.y, -(br.width + br.x), (r->height + br.height) / 2 } });
+            }
+        }
     }
 
     /* if this is a borderless/1pixel window, we don’t need to render the
