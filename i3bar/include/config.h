@@ -46,6 +46,8 @@ typedef struct config_t {
     bool disable_binding_mode_indicator;
     bool disable_ws;
     bool strip_ws_numbers;
+    bool use_shell_ws;
+    char *command_ws;
     char *bar_id;
     char *command;
     char *fontname;

@@ -591,11 +591,21 @@ void handle_button(xcb_button_press_event_t *event) {
         namelen++;
     }
 
-    const size_t len = namelen + strlen("workspace \"\"") + 1;
+    char* prefix;
+    if(config.use_shell_ws) {
+        prefix = malloc(strlen(config.command_ws) + 3 + 1);
+        strcat(prefix, config.command_ws);
+        strcat(prefix, " \"\"");
+    }
+    else {
+        prefix = "workspace \"\"";
+    }
+
+    const size_t len = namelen + strlen(prefix) + 1;
     char *buffer = scalloc(len + num_quotes, 1);
-    strncpy(buffer, "workspace \"", strlen("workspace \""));
+    strncpy(buffer, prefix, strlen(prefix)-1);
     size_t inpos, outpos;
-    for (inpos = 0, outpos = strlen("workspace \"");
+    for (inpos = 0, outpos = strlen(prefix)-1;
          inpos < namelen;
          inpos++, outpos++) {
         if (utf8_name[inpos] == '"' || utf8_name[inpos] == '\\') {
@@ -605,7 +615,12 @@ void handle_button(xcb_button_press_event_t *event) {
         buffer[outpos] = utf8_name[inpos];
     }
     buffer[outpos] = '"';
-    i3_send_msg(I3_IPC_MESSAGE_TYPE_COMMAND, buffer);
+    if(config.use_shell_ws) {
+        system(buffer);
+    }
+    else {
+        i3_send_msg(I3_IPC_MESSAGE_TYPE_COMMAND, buffer);
+    }
     free(buffer);
 }
 
